@@ -21,6 +21,11 @@ pub fn codegen(opts: &Options) -> Result<(), anyhow::Error> {
     let builder = || {
         let mut bindgen = bindgen::bpf_builder()
             .header(&*dir.join("include/bindings.h").to_string_lossy())
+            .clang_args(&[
+                "-I",
+                &*opts.libbpf_dir.join("include/uapi").to_string_lossy(),
+            ])
+            .clang_args(&["-I", &*opts.libbpf_dir.join("include").to_string_lossy()])
             .clang_args(&["-I", &*opts.libbpf_dir.join("src").to_string_lossy()])
             // open aya-bpf-bindings/.../bindings.rs and look for mod
             // _bindgen, those are anonymous enums
@@ -37,12 +42,22 @@ pub fn codegen(opts: &Options) -> Result<(), anyhow::Error> {
             .constified_enum("BPF_FIB_.*")
             .constified_enum("BPF_FLOW_.*");
 
-        let types = ["bpf_map_.*", "sk_action", "pt_regs", "xdp_action"];
+        let types = [
+            "bpf_map_.*",
+            "sk_action",
+            "pt_regs",
+            "xdp_action",
+            "bpf_adj_room_mode",
+        ];
         let vars = ["BPF_.*", "bpf_.*", "TC_ACT_.*", "SOL_SOCKET", "SO_.*"];
 
         for x in &types {
             bindgen = bindgen.whitelist_type(x);
         }
+
+        // we define our own version which is compatible with both libbpf and
+        // iproute2
+        bindgen = bindgen.blacklist_type("bpf_map_def");
 
         for x in &vars {
             bindgen = bindgen.whitelist_var(x);

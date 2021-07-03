@@ -22,6 +22,14 @@ fn codegen_internal_btf_bindings(opts: &Options) -> Result<(), anyhow::Error> {
                 .unwrap()
                 .to_string_lossy()
         ))
+        .clang_arg(format!(
+            "-I{}",
+            opts.libbpf_dir
+                .join("include")
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+        ))
         .header(
             opts.libbpf_dir
                 .join("src/libbpf_internal.h")
@@ -159,6 +167,9 @@ fn codegen_bindings(opts: &Options) -> Result<(), anyhow::Error> {
         match arch {
             Architecture::X86_64 => {
                 bindgen = bindgen.clang_args(&["-I", "/usr/include/x86_64-linux-gnu"]);
+            }
+            Architecture::ARMv7 => {
+                bindgen = bindgen.clang_args(&["-I", "/usr/arm-linux-gnueabi/include"]);
             }
             Architecture::AArch64 => {
                 bindgen = bindgen.clang_args(&["-I", "/usr/aarch64-linux-gnu/include"]);
